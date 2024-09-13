@@ -63,6 +63,23 @@ config MCUBOOT_SERIAL_DIRECT_IMAGE_UPLOAD
 	  Note that 0 is default upload target when no explicit
 	  selection is done.
 
+config MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION
+	bool "Allow to select extern partition when use single_application_slot"
+	depends on SINGLE_APPLICATION_SLOT
+	help
+	  With the option enabled, the mcuboot serial recovery will
+	  use extern flash partition even in single_application_slot
+	  The mapping of image number to partition is as follows:
+	    0 -> default behaviour, same as 1;
+	    1 -> image-0 (primary slot of the first image);
+	    2 -> image-1 (secondary slot of the first image);
+	    3 -> image-2;
+	    4 -> image-3.
+	  Note that 0 is default upload target when no explicit
+	  selection is done.
+
+
+
 config BOOT_SERIAL_UNALIGNED_BUFFER_SIZE
 	int "Stack buffer for unaligned memory writes"
 	default 64

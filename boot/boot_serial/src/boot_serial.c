@@ -702,11 +702,14 @@ bs_upload(char *buf, int len)
         }
     }
 
-#if !defined(MCUBOOT_SERIAL_DIRECT_IMAGE_UPLOAD)
+#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+    rc = flash_area_open(flash_area_id_from_direct_image(img_num), &fap);
+#elif !defined(MCUBOOT_SERIAL_DIRECT_IMAGE_UPLOAD)
     rc = flash_area_open(flash_area_id_from_multi_image_slot(img_num, 0), &fap);
 #else
     rc = flash_area_open(flash_area_id_from_direct_image(img_num), &fap);
 #endif
+    
     if (rc) {
         rc = MGMT_ERR_EINVAL;
         goto out;
@@ -797,6 +800,7 @@ bs_upload(char *buf, int len)
     }
 
     BOOT_LOG_INF("Writing at 0x%x until 0x%x", curr_off, curr_off + img_chunk_len);
+    // LOG_HEXDUMP_INF(img_chunk, img_chunk_len,"Memory data:");
     /* Write flash aligned chunk, note that img_chunk_len now holds aligned length */
 #if defined(MCUBOOT_SERIAL_UNALIGNED_BUFFER_SIZE) && MCUBOOT_SERIAL_UNALIGNED_BUFFER_SIZE > 0
     if (flash_area_align(fap) > 1 &&
@@ -856,6 +860,21 @@ bs_upload(char *buf, int len)
                 rc = MGMT_ERR_EUNKNOWN;
                 goto out;
             }
+#endif
+
+
+#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+
+
+            /*Custom process when mcuboot_single_application_slot_use_extern_partition enable
+            1.  download the image with custom enc process,forexample download to  slot2
+            2.  Customized encryption algorithm and secret key are read from external encryption IC
+            3.  After decryption, put it in slot0
+            4.  You can use this function to download additional parameters to the specified slot partition.
+             */
+
+
+
 #endif
             rc = BOOT_HOOK_CALL(boot_serial_uploaded_hook, 0, img_num, fap,
                                 img_size);

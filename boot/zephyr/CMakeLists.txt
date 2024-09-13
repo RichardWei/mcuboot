@@ -363,6 +363,15 @@ if(CONFIG_MCUBOOT_BOOT_BANNER)
   zephyr_sources(kernel/banner.c)
 endif()
 
+
+
+if(CONFIG_MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+  zephyr_sources(${BOOT_DIR}/zephyr/signal_enc_upload.c)
+    zephyr_library_include_directories(
+    ${BOOT_DIR}/zephyr/include
+    )
+endif()
+
 if(SYSBUILD)
   function(align_up num align result)
     math(EXPR out "(((${num}) + ((${align}) - 1)) & ~((${align}) - 1))")

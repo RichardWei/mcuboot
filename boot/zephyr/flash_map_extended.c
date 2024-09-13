@@ -91,7 +91,7 @@ int flash_area_id_to_multi_image_slot(int image_index, int area_id)
     return -1;
 }
 
-#if defined(CONFIG_MCUBOOT_SERIAL_DIRECT_IMAGE_UPLOAD)
+#if defined(CONFIG_MCUBOOT_SERIAL_DIRECT_IMAGE_UPLOAD) || defined(CONFIG_MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
 int flash_area_id_from_direct_image(int image_id)
 {
     switch (image_id) {
