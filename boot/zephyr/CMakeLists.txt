@@ -366,7 +366,7 @@ endif()
 
 
 if(CONFIG_MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
-  zephyr_sources(${BOOT_DIR}/zephyr/signal_enc_upload.c)
+  zephyr_sources(${BOOT_DIR}/zephyr/single_enc_upload.c)
     zephyr_library_include_directories(
     ${BOOT_DIR}/zephyr/include
     )

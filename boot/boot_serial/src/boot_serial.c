@@ -74,6 +74,16 @@
 #endif
 
 #include "bootutil/boot_hooks.h"
+#ifdef __ZEPHYR__
+#ifdef CONFIG_MCUBOOT_INDICATION_LED
+#include "io/io.h"
+#endif
+#endif
+
+#ifdef MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION
+#include "single_enc_upload/single_enc_upload.h"
+#endif
+
 
 BOOT_LOG_MODULE_DECLARE(mcuboot);
 
@@ -701,6 +711,11 @@ bs_upload(char *buf, int len)
             img_num = 0;
         }
     }
+#ifdef __ZEPHYR__
+#ifdef CONFIG_MCUBOOT_INDICATION_LED
+    io_led_set(1);
+#endif
+#endif
 
 #if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
     rc = flash_area_open(flash_area_id_from_direct_image(img_num), &fap);
@@ -833,6 +848,14 @@ bs_upload(char *buf, int len)
 #else
     rc = flash_area_write(fap, curr_off, img_chunk, img_chunk_len);
 #endif
+#ifdef __ZEPHYR__
+#ifdef CONFIG_MCUBOOT_INDICATION_LED
+    io_led_set(0);
+#endif
+#endif
+
+
+
 
     if (rc == 0 && rem_bytes) {
         /* Non-zero rem_bytes means that last chunk needs alignment; the aligned
@@ -862,6 +885,23 @@ bs_upload(char *buf, int len)
             }
 #endif
 
+#ifdef __ZEPHYR__
+    for (size_t i = 0; i < 6; i++)
+    {
+    io_led_set(0);
+#ifdef CONFIG_MULTITHREADING
+    k_sleep(K_MSEC(100));
+#else
+    os_cputime_delay_usecs(100000);
+#endif
+    io_led_set(1);
+#ifdef CONFIG_MULTITHREADING
+    k_sleep(K_MSEC(100));
+#else
+    os_cputime_delay_usecs(100000);
+#endif
+    }
+#endif
 
 #if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
 
@@ -872,7 +912,15 @@ bs_upload(char *buf, int len)
             3.  After decryption, put it in slot0
             4.  You can use this function to download additional parameters to the specified slot partition.
              */
-
+    if (img_num > BOOT_SECONDARY_SLOT)
+    {
+        /*Decryption and and release to slot0*/
+        // rc = rc = flash_area_write(fap, curr_off, img_chunk, img_chunk_len);
+        if (rc) {
+            BOOT_LOG_ERR("Error %d when decryption and and release to slot0", rc);
+            goto out;
+        }
+    }
 
 
 #endif
