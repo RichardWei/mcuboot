@@ -885,45 +885,7 @@ bs_upload(char *buf, int len)
             }
 #endif
 
-#ifdef __ZEPHYR__
-    for (size_t i = 0; i < 6; i++)
-    {
-    io_led_set(0);
-#ifdef CONFIG_MULTITHREADING
-    k_sleep(K_MSEC(100));
-#else
-    os_cputime_delay_usecs(100000);
-#endif
-    io_led_set(1);
-#ifdef CONFIG_MULTITHREADING
-    k_sleep(K_MSEC(100));
-#else
-    os_cputime_delay_usecs(100000);
-#endif
-    }
-#endif
 
-#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
-
-
-            /*Custom process when mcuboot_single_application_slot_use_extern_partition enable
-            1.  download the image with custom enc process,forexample download to  slot2
-            2.  Customized encryption algorithm and secret key are read from external encryption IC
-            3.  After decryption, put it in slot0
-            4.  You can use this function to download additional parameters to the specified slot partition.
-             */
-    if (img_num > BOOT_SECONDARY_SLOT)
-    {
-        /*Decryption and and release to slot0*/
-        // rc = rc = flash_area_write(fap, curr_off, img_chunk, img_chunk_len);
-        if (rc) {
-            BOOT_LOG_ERR("Error %d when decryption and and release to slot0", rc);
-            goto out;
-        }
-    }
-
-
-#endif
             rc = BOOT_HOOK_CALL(boot_serial_uploaded_hook, 0, img_num, fap,
                                 img_size);
             if (rc) {
@@ -946,8 +908,51 @@ out:
         zcbor_uint32_put(cbor_state, curr_off);
     }
     zcbor_map_end_encode(cbor_state, 10);
-
     boot_serial_output();
+
+#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+
+
+            /*Custom process when mcuboot_single_application_slot_use_extern_partition enable
+            1.  download the image with custom enc process,forexample download to  slot2
+            2.  Customized encryption algorithm and secret key are read from external encryption IC
+            3.  After decryption, put it in slot0
+            4.  You can use this function to download additional parameters to the specified slot partition.
+             */
+    if ((img_num > BOOT_SECONDARY_SLOT) && (curr_off == img_size))
+    {
+
+        /*Decryption and and release to slot0*/
+        rc = release_image_to_slot(BOOT_SECONDARY_SLOT, img_num, img_size);
+        if (rc) {
+            BOOT_LOG_ERR("Error %d when decryption and and release to slot0", rc);
+            // goto out;
+        }
+        else
+        {
+#ifdef __ZEPHYR__
+    for (size_t i = 0; i < 6; i++)
+    {
+    io_led_set(0);
+#ifdef CONFIG_MULTITHREADING
+    k_sleep(K_MSEC(50));
+#else
+    os_cputime_delay_usecs(100000);
+#endif
+    io_led_set(1);
+#ifdef CONFIG_MULTITHREADING
+    k_sleep(K_MSEC(100));
+#else
+    os_cputime_delay_usecs(100000);
+#endif
+    }
+#endif
+        }
+
+    }
+#endif
+
+
 
 #ifdef MCUBOOT_ENC_IMAGES
     /* Check if this upload was for the primary slot */
