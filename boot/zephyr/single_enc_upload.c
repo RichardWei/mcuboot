@@ -3,24 +3,15 @@
 #include <zephyr/kernel.h>
 #include <flash_map_backend/flash_map_backend.h>
 #include "../boot_serial/src/boot_serial_priv.h"
-
 #include "bootutil/bootutil_log.h"
 
 BOOT_LOG_MODULE_DECLARE(mcuboot);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+#ifdef __ZEPHYR__
+#ifdef CONFIG_MCUBOOT_INDICATION_LED
+#include "io/io.h"
+#endif
+#endif
 
 int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_image_lenght)
 {
@@ -39,11 +30,15 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_i
     }
     /*earse app_slot partition*/
     const size_t area_size = flash_area_get_size(app_partition);
+    io_led_set(0);
+    k_msleep(50);
+    io_led_set(1);
     rc = flash_area_erase(app_partition, 0, area_size);
     if (rc) {
         rc = MGMT_ERR_ENOMEM;
         goto out;
     }
+    io_led_set(0);
     /*open storage_slot partition*/
     rc = flash_area_open(flash_area_id_from_direct_image(storage_slot), &storage_partition);
     if (rc) {
