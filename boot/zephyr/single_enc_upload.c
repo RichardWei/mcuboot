@@ -27,17 +27,20 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_i
     if (rc) {
         rc = MGMT_ERR_EINVAL;
         goto out;
-    }
+    }    
+    /*Dont Need Earse ,it earseed when downdload*/
     /*earse app_slot partition*/
-    const size_t area_size = flash_area_get_size(app_partition);
-    io_led_set(0);
-    k_msleep(50);
-    io_led_set(1);
-    rc = flash_area_erase(app_partition, 0, area_size);
-    if (rc) {
-        rc = MGMT_ERR_ENOMEM;
-        goto out;
-    }
+    // const size_t area_size = flash_area_get_size(app_partition);
+    // io_led_set(0);
+    // k_msleep(50);
+    // io_led_set(1);
+
+
+    // rc = flash_area_erase(app_partition, 0, area_size);
+    // if (rc) {
+    //     rc = MGMT_ERR_ENOMEM;
+    //     goto out;
+    // }
     io_led_set(0);
     /*open storage_slot partition*/
     rc = flash_area_open(flash_area_id_from_direct_image(storage_slot), &storage_partition);

@@ -651,6 +651,13 @@ bs_upload(char *buf, int len)
     static uint32_t img_num = 0;
     size_t img_size_tmp = SIZE_MAX;     /* Temp variable for image size */
     const struct flash_area *fap = NULL;
+
+#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+
+     const struct flash_area *fap_slot0 = NULL;
+    
+#endif
+
     int rc;
     struct zcbor_string img_chunk_data;
     size_t decoded = 0;
@@ -675,6 +682,10 @@ bs_upload(char *buf, int len)
         ZCBOR_MAP_DECODE_KEY_DECODER("len", zcbor_size_decode, &img_size_tmp),
         ZCBOR_MAP_DECODE_KEY_DECODER("off", zcbor_size_decode, &img_chunk_off),
     };
+
+    // BOOT_LOG_INF("img_num_tmp  0x%x, img_chunk_data.len, 0x%x img_size_tmp 0x%x,img_chunk_off 0x%x",
+    //     img_num_tmp, img_chunk_data.len, img_size_tmp, img_chunk_off);
+
 
     ok = zcbor_map_decode_bulk(zsd, image_upload_decode, ARRAY_SIZE(image_upload_decode),
                                &decoded) == 0;
@@ -764,7 +775,24 @@ bs_upload(char *buf, int len)
 
 #endif
 
+#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+    /*In This Mode,Earse slot 0 first*/
+    rc = flash_area_open(flash_area_id_from_direct_image(0), &fap_slot0);
+    if (rc) {
+        rc = MGMT_ERR_EINVAL;
+        goto out;
+    }
+     const size_t fap_slot0_area_size  = flash_area_get_size(fap_slot0);
+    rc = flash_area_erase(fap_slot0, 0, fap_slot0_area_size);
+    if (rc) {
+        goto out_invalid_data;
+    }
+
+
+#endif
+
 #ifndef MCUBOOT_ERASE_PROGRESSIVELY
+
         /* Non-progressive erase erases entire image slot when first chunk of
          * an image is received.
          */
@@ -886,6 +914,51 @@ bs_upload(char *buf, int len)
 #endif
 
 
+#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
+
+
+            /*Custom process when mcuboot_single_application_slot_use_extern_partition enable
+            1.  download the image with custom enc process,forexample download to  slot2
+            2.  Customized encryption algorithm and secret key are read from external encryption IC
+            3.  After decryption, put it in slot0
+            4.  You can use this function to download additional parameters to the specified slot partition.
+             */
+    if ((img_num > BOOT_SECONDARY_SLOT) && (curr_off == img_size))
+    {
+
+        /*Decryption and and release to slot0*/
+        rc = release_image_to_slot(BOOT_SECONDARY_SLOT, img_num, img_size);
+        if (rc) {
+            BOOT_LOG_ERR("Error %d when decryption and and release to slot0", rc);
+            goto out;
+        }
+        else
+        {
+#ifdef __ZEPHYR__
+    for (size_t i = 0; i < 6; i++)
+    {
+    io_led_set(0);
+#ifdef CONFIG_MULTITHREADING
+    k_sleep(K_MSEC(50));
+#else
+    os_cputime_delay_usecs(100000);
+#endif
+    io_led_set(1);
+#ifdef CONFIG_MULTITHREADING
+    k_sleep(K_MSEC(20));
+#else
+    os_cputime_delay_usecs(100000);
+#endif
+    }
+#endif
+        }
+
+    }
+#endif
+
+
+
+
             rc = BOOT_HOOK_CALL(boot_serial_uploaded_hook, 0, img_num, fap,
                                 img_size);
             if (rc) {
@@ -910,47 +983,7 @@ out:
     zcbor_map_end_encode(cbor_state, 10);
     boot_serial_output();
 
-#if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
 
-
-            /*Custom process when mcuboot_single_application_slot_use_extern_partition enable
-            1.  download the image with custom enc process,forexample download to  slot2
-            2.  Customized encryption algorithm and secret key are read from external encryption IC
-            3.  After decryption, put it in slot0
-            4.  You can use this function to download additional parameters to the specified slot partition.
-             */
-    if ((img_num > BOOT_SECONDARY_SLOT) && (curr_off == img_size))
-    {
-
-        /*Decryption and and release to slot0*/
-        rc = release_image_to_slot(BOOT_SECONDARY_SLOT, img_num, img_size);
-        if (rc) {
-            BOOT_LOG_ERR("Error %d when decryption and and release to slot0", rc);
-            // goto out;
-        }
-        else
-        {
-#ifdef __ZEPHYR__
-    for (size_t i = 0; i < 6; i++)
-    {
-    io_led_set(0);
-#ifdef CONFIG_MULTITHREADING
-    k_sleep(K_MSEC(50));
-#else
-    os_cputime_delay_usecs(100000);
-#endif
-    io_led_set(1);
-#ifdef CONFIG_MULTITHREADING
-    k_sleep(K_MSEC(100));
-#else
-    os_cputime_delay_usecs(100000);
-#endif
-    }
-#endif
-        }
-
-    }
-#endif
 
 
 
