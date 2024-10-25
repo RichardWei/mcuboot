@@ -1,6 +1,6 @@
 #ifndef __SINGLE_ENC_CHIP_SDK_H__
 #define __SINGLE_ENC_CHIP_SDK_H__
-
+#include <zephyr/kernel.h>
 #define ALC16_UART_TIMEOUT 200
 
 #define ENUM_TO_STRING(name) #name
@@ -13,6 +13,7 @@ typedef enum ALC16_ERROR_CODE
     ALC16_FUNC_TX_FINISH_TIMEOUT,
     ALC16_FUNC_RX_FINISH_TIMEOUT,
     ALC16_FUNC_RX_CRC_ERROR,
+    ALC16_FUNC_RX_LENGHT_ERROR,
 } ENUM_ALC16_FUNC_CODE;
 
 typedef struct Header
@@ -176,6 +177,7 @@ enum
 };
 
 void alc_func_init(void);
-bool send_cmd(void);
-
+// bool send_cmd(void);
+bool ask_alc_random(void);
+bool ask_key_iv_random(uint8_t *key, uint8_t *iv, uint16_t key_index, uint16_t iv_index);
 #endif

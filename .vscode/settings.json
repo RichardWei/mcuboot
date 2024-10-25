@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "oid.h": "c",
+        "common.h": "c"
+    }
+}
