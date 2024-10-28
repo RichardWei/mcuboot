@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "oid.h": "c",
-        "common.h": "c"
+        "common.h": "c",
+        "bootutil_log.h": "c"
     }
 }
