@@ -450,15 +450,13 @@ int main(void)
 #if defined(CONFIG_FLASH_EX_OP_ENABLED) && DT_NODE_HAS_PROP(DT_NODELABEL(flash), st_rdp1_enable_byte) && (CONFIG_FLASH_STM32_READOUT_PROTECTION)
     static const struct device *const flash_dev = FIXED_PARTITION_DEVICE(boot_partition);
 	const struct flash_driver_api *api = flash_dev->api;
-
     if (api->ex_op) {
-        // size_t rdp_value =DT_PROP(DT_NODELABEL(flash), st_rdp1_enable_byte);
 		struct flash_stm32_ex_op_rdp rdp_set={true,false};
         rc = api->ex_op(flash_dev, FLASH_STM32_EX_OP_RDP, (uintptr_t)&rdp_set, NULL);
         if (rc < 0) {
             BOOT_LOG_ERR("Failed to set flash_stm32_ex_op_rdp  to true,false"); 
         }
-        BOOT_LOG_INF("set stm32 rdp to 0xBB ");
+        BOOT_LOG_INF("set stm32 rdp to 0x%02x", DT_PROP(DT_NODELABEL(flash), st_rdp1_enable_byte));
     }
 #endif
 
