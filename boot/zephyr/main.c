@@ -87,6 +87,17 @@ const struct boot_uart_funcs boot_funcs = {
 #include <arm_cleanup.h>
 #endif
 
+
+#if defined(CONFIG_FLASH_EX_OP_ENABLED) && DT_NODE_HAS_PROP(DT_NODELABEL(flash), st_rdp1_enable_byte) &&(CONFIG_FLASH_STM32_READOUT_PROTECTION)
+#include <zephyr/drivers/flash.h>
+#include <zephyr/drivers/flash/stm32_flash_api_extensions.h>
+#include <zephyr/devicetree.h>
+#include <zephyr/storage/flash_map.h>
+#endif
+
+
+
+
 /* CONFIG_LOG_MINIMAL is the legacy Kconfig property,
  * replaced by CONFIG_LOG_MODE_MINIMAL.
  */
@@ -433,6 +444,25 @@ int main(void)
     (void)rc;
 
     mcuboot_status_change(MCUBOOT_STATUS_STARTUP);
+
+
+
+#if defined(CONFIG_FLASH_EX_OP_ENABLED) && DT_NODE_HAS_PROP(DT_NODELABEL(flash), st_rdp1_enable_byte) && (CONFIG_FLASH_STM32_READOUT_PROTECTION)
+    static const struct device *const flash_dev = FIXED_PARTITION_DEVICE(boot_partition);
+	const struct flash_driver_api *api = flash_dev->api;
+
+    if (api->ex_op) {
+        // size_t rdp_value =DT_PROP(DT_NODELABEL(flash), st_rdp1_enable_byte);
+		struct flash_stm32_ex_op_rdp rdp_set={true,false};
+        rc = api->ex_op(flash_dev, FLASH_STM32_EX_OP_RDP, (uintptr_t)&rdp_set, NULL);
+        if (rc < 0) {
+            BOOT_LOG_ERR("Failed to set flash_stm32_ex_op_rdp  to true,false"); 
+        }
+        BOOT_LOG_INF("set stm32 rdp to 0xBB ");
+    }
+#endif
+
+
 
 #ifdef CONFIG_BOOT_SERIAL_ENTRANCE_GPIO
     if (io_detect_pin() &&

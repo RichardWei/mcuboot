@@ -237,36 +237,7 @@ static int com_sendstring(char *s, uint16_t addr, bool issend)
     return 0;
 }
 
-static int get_addr( char *str, uint16_t write_addr, bool flag)
-{
-    int rc;
-    char *p1, *p2;
-    uint16_t addr = 0;
-    uint16_t bytes_read;
-    rc = com_sendstring(str, write_addr, true);
-    if (rc)
-    
-       
-        goto error;
-    
-    if (hmi_read(hmi_rx_buffer, sizeof(hmi_rx_buffer), 30) > 1)
-    {
-        hmi_rx_buffer[bytes_read] = '\0';
-        p1 = strstr((char *)hmi_rx_buffer, "-");
-        if (p1)
-        {
-            p2 = strstr(p1 + 1, ",");
-            if (p2)
-            {
-                *(p2 + 1) = '\0';
-                addr = atoi(p1 + 1);
-            }
-        }
-    }
-    return addr;
-error:
-    return rc;
-}
+
 
 int connect_lcd(void)
 {

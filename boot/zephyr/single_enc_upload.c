@@ -354,7 +354,7 @@ static int aes256_cbc_decrypt_tft_file(const struct flash_area *storage_partitio
     {
         /*需要发送的tft数据包长度*/
         send_lenght = 0;
-
+        io_led_set(0);
         ret = flash_area_read(storage_partition, i * sizeof(read_buffer) + header->Mcu_Infor.pkg_size + sizeof(Rbl_Header_t), read_buffer, sizeof(read_buffer));
         if (ret)
         {
@@ -374,7 +374,11 @@ static int aes256_cbc_decrypt_tft_file(const struct flash_area *storage_partitio
         else if (send_total % 4096 == 0)
             send_lenght = sizeof(tft_send_buffer);
         if (send_lenght)
+        {
+            io_led_set(1);
             send_tft_pkg(tft_send_buffer, send_lenght);
+            io_led_set(1);
+        }
     }
     if (ret)
         goto error;
@@ -460,10 +464,9 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_i
     }
 
     /*通过hmi串口更新固件到tft*/
-
     if (aes256_cbc_decrypt_tft_file(storage_partition, &fw_info, aes_key, aes_iv))
     {
-        rc = -8;
+        rc = -9;
         BOOT_LOG_ERR("tft firmware updated error ");
         goto out;
     }
