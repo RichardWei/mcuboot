@@ -369,10 +369,13 @@ static int aes256_cbc_decrypt_tft_file(const struct flash_area *storage_partitio
         memcpy(tft_send_buffer + (i % 16) * sizeof(read_buffer), read_buffer, sizeof(read_buffer));
         /*发送数据到hmi串口*/
         send_total += sizeof(read_buffer);
-        if (send_total >= header->Tft_Infor.raw_size)
-            send_lenght = header->Tft_Infor.raw_size % sizeof(tft_send_buffer);
-        else if (send_total % 4096 == 0)
+
+        /*每次发送4K数据包，长度为4096*/
+        if (send_total % 4096 == 0)
             send_lenght = sizeof(tft_send_buffer);
+        /*发送非4K数据包的情况判断*/
+        else if (send_total >= header->Tft_Infor.raw_size)
+            send_lenght = header->Tft_Infor.raw_size % sizeof(tft_send_buffer);
         if (send_lenght)
         {
             io_led_set(1);
