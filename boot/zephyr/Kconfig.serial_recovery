@@ -79,14 +79,28 @@ config MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION
 	  selection is done.
 
 
-
-config MCUBOOT_USE_ALC16_AND_HMI
-	bool "Allow to select extern partition when use single_application_slot"
+config MCUBOOT_USE_ALC16
+	bool "Allow to use extern enc chip when use single_application_slot"
 	depends on MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION
 	help
 	  With the option enabled, the mcuboot serial recovery will
 	  use alc16 to storage aes key table and can update hmi firmware
 
+choice
+    prompt "Select firmware type with alc16"
+    depends on MCUBOOT_USE_ALC16
+
+config MCUBOOT_USE_HMI_WITH_ALC16
+    bool "Update HMI firmware with alc16 chip"
+    help
+      Use alc16 to storage aes key table and update hmi firmware
+
+config MCUBOOT_USE_FPGA_WITH_ALC16
+    bool "Update FPGA firmware with alc16 chip"
+    help
+      Use alc16 to storage aes key table and update fpga firmware
+
+endchoice
 
 config BOOT_SERIAL_UNALIGNED_BUFFER_SIZE
 	int "Stack buffer for unaligned memory writes"

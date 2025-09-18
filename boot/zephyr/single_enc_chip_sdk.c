@@ -3,7 +3,10 @@
 // #ifdef __ZEPHYR__
 #include <zephyr/kernel.h>
 
-#ifdef CONFIG_MCUBOOT_USE_ALC16_AND_HMI
+
+
+#ifdef CONFIG_MCUBOOT_USE_ALC16
+
 #include <zephyr/kernel.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <zephyr/device.h>

@@ -6,9 +6,9 @@
 
 BOOT_LOG_MODULE_DECLARE(mcuboot);
 
-// #ifdef CONFIG_MCUBOOT_USE_ALC16_AND_HMI
+#ifdef MCUBOOT_USE_HMI_WITH_ALC16
 
-#if 1
+// #if 1
 
 /*hmi更新*/
 

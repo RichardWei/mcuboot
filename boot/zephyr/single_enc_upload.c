@@ -12,8 +12,12 @@ BOOT_LOG_MODULE_DECLARE(mcuboot);
 #include "io/io.h"
 #endif
 #endif
+#ifdef CONFIG_MCUBOOT_USE_ALC16
+// #if defined((CONFIG_MCUBOOT_USE_HMI_WITH_ALC16) || (CONFIG_MCUBOOT_USE_FPGA_WITH_FPGA))
 
-#ifdef CONFIG_MCUBOOT_USE_ALC16_AND_HMI
+
+
+
 
 #include <zephyr/sys/crc.h>
 
@@ -29,7 +33,9 @@ static uint8_t aes_key[32];
 static uint8_t aes_iv[16];
 static uint8_t str_buffer[112 * 2 + 1];
 
+#ifdef CONFIG_MCUBOOT_USE_HMI_WITH_ALC16
 static uint8_t tft_send_buffer[4096];
+#endif
 
 /*MCU固件更新相关的函数*/
 static void xor_array(uint8_t *arr, uint32_t len)
@@ -313,7 +319,7 @@ error:
     mbedtls_aes_free(&aes_ctx);
     return ret;
 }
-
+#ifdef CONFIG_MCUBOOT_USE_HMI_WITH_ALC16
 static int aes256_cbc_decrypt_tft_file(const struct flash_area *storage_partition, const Rbl_Header_t *header, uint8_t *key, uint8_t *iv)
 {
     int ret;
@@ -391,6 +397,7 @@ error:
     mbedtls_aes_free(&aes_ctx);
     return ret;
 }
+#endif
 
 int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_image_lenght)
 {
@@ -465,7 +472,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_i
         BOOT_LOG_ERR("header mcu raw sha256 error ");
         goto out;
     }
-
+#ifdef CONFIG_MCUBOOT_USE_HMI_WITH_ALC16
     /*通过hmi串口更新固件到tft*/
     if (aes256_cbc_decrypt_tft_file(storage_partition, &fw_info, aes_key, aes_iv))
     {
@@ -473,6 +480,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_i
         BOOT_LOG_ERR("tft firmware updated error ");
         goto out;
     }
+#endif
 
     BOOT_LOG_INF("release_image_to_slot success ");
     return rc;
@@ -492,7 +500,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot, uint32_t enc_i
     uint8_t buffer[512];
     size_t offset = 0;
     size_t write_times = 0;
-#ifdef CONFIG_MCUBOOT_USE_ALC16_AND_HMI
+#ifdef MCUBOOT_USE_ALC16
 
     alc_func_init();
 
