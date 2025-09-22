@@ -6,7 +6,7 @@
 
 
 #ifdef CONFIG_MCUBOOT_USE_ALC16
-
+#include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/sys/ring_buffer.h>
 #include <zephyr/device.h>

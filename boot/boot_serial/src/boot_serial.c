@@ -637,8 +637,7 @@ static off_t erase_range(const struct flash_area *fap, off_t start, off_t end)
 /*
  * Image upload request.
  */
-static void
-bs_upload(char *buf, int len)
+static void bs_upload(char *buf, int len)
 {
     static size_t img_size;             /* Total image size, held for duration of upload */
     static uint32_t curr_off;           /* Expected current offset */
@@ -782,7 +781,7 @@ bs_upload(char *buf, int len)
         rc = MGMT_ERR_EINVAL;
         goto out;
     }
-     const size_t fap_slot0_area_size  = flash_area_get_size(fap_slot0);
+    const size_t fap_slot0_area_size  = flash_area_get_size(fap_slot0);
     rc = flash_area_erase(fap_slot0, 0, fap_slot0_area_size);
     if (rc) {
         goto out_invalid_data;
