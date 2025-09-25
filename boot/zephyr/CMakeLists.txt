@@ -133,16 +133,17 @@ zephyr_library_sources(
   )
 zephyr_library_include_directories(${BOOT_DIR}/bootutil/src)
 
-  # Add HMI SDK sources when enabled
-  if(CONFIG_MCUBOOT_USE_HMI_WITH_ALC16)
-    zephyr_library_sources(
-      ${BOOT_DIR}/zephyr/single_hmi_sdk.c
-      ${BOOT_DIR}/zephyr/single_enc_chip_sdk.c
-      )
-    zephyr_library_include_directories(
-      ${BOOT_DIR}/zephyr/include/single_hmi_sdk
-      )
-  endif()
+# Add HMI SDK sources when enabled
+if(CONFIG_MCUBOOT_USE_ALC16)
+  zephyr_library_sources(
+    ${BOOT_DIR}/zephyr/single_hmi_sdk.c
+    ${BOOT_DIR}/zephyr/single_enc_chip_sdk.c
+    )
+  zephyr_library_include_directories(
+    ${BOOT_DIR}/zephyr/include/single_hmi_sdk
+    )
+endif()
+
 elseif(CONFIG_BOOT_FIRMWARE_LOADER)
 zephyr_library_sources(
   ${BOOT_DIR}/zephyr/firmware_loader.c
@@ -378,7 +379,6 @@ endif()
 
 if(CONFIG_MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
   zephyr_sources(${BOOT_DIR}/zephyr/single_enc_upload.c)
-  zephyr_sources(${BOOT_DIR}/zephyr/single_enc_chip_sdk.c)
   zephyr_sources(${BOOT_DIR}/zephyr/single_hmi_sdk.c)
     zephyr_library_include_directories(
     ${BOOT_DIR}/zephyr/include

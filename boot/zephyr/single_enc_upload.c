@@ -48,38 +48,43 @@ static const struct gpio_dt_spec fpga_nconfig_pin = GPIO_DT_SPEC_GET(
             FPGA_NCONFIG_NODE, gpios);
 static const struct gpio_dt_spec fpga_nce_pin = GPIO_DT_SPEC_GET(FPGA_NCE_NODE,
         gpios);
-static const struct gpio_dt_spec fpga_nreset_pin = GPIO_DT_SPEC_GET(DT_ALIAS(fpga_nreset),
+static const struct gpio_dt_spec fpga_nreset_pin = GPIO_DT_SPEC_GET(DT_ALIAS(
+            fpga_nreset),
         gpios);
 
 
 
-static void fpga_pin_init(void)
+static int fpga_pin_init(void)
 {
     if (!device_is_ready(fpga_config_done_pin.port))
     {
         BOOT_LOG_ERR("Didn't find FPGA_CONFIG_DONE device referred by the FPGA_CONFIG_DONE_NODE\n");
-        return;
+        return -ENODEV;
     }
     if (!device_is_ready(fpga_nconfig_pin.port))
     {
         BOOT_LOG_ERR("Didn't find FPGA_NCONFIG device referred by the FPGA_NCONFIG_NODE\n");
-        return;
+        return -ENODEV;
     }
     if (!device_is_ready(fpga_nce_pin.port))
     {
         BOOT_LOG_ERR("Didn't find FPGA_NCE device referred by the FPGA_NCE_NODE\n");
-        return;
+        return -ENODEV;
     }
     if (!device_is_ready(fpga_nreset_pin.port))
     {
         BOOT_LOG_ERR("Didn't find FPGA_NRESET device referred by the FPGA_NRESET_NODE\n");
-        return;
+        return -ENODEV;
     }
     gpio_pin_configure_dt(&fpga_config_done_pin, GPIO_OUTPUT_ACTIVE);
     gpio_pin_configure_dt(&fpga_nconfig_pin, GPIO_OUTPUT_ACTIVE);
     gpio_pin_configure_dt(&fpga_nce_pin, GPIO_OUTPUT_ACTIVE);
     gpio_pin_configure_dt(&fpga_nreset_pin, GPIO_OUTPUT_ACTIVE);
+    return 0;
 }
+/*make sure the fpga pin init before use fpga flash*/
+SYS_INIT(fpga_pin_init, POST_KERNEL, 0);
+
 #endif
 
 
@@ -474,6 +479,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         rc = -2;
         goto out;
     }
+    BOOT_LOG_INF("app and storage partition open success");
     /*读取打包的头信息*/
     if (!read_file_header_infor(&fw_info, storage_partition))
     {
@@ -487,6 +493,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         BOOT_LOG_ERR("file to big ");
         goto out;
     }
+    BOOT_LOG_INF("Get file key and iv");
     ask_alc_random();
     /*获取真正的密钥*/
     get_app_file_key_iv(aes_key, aes_iv, &fw_info);
@@ -498,6 +505,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         BOOT_LOG_ERR("header mcu aes sha256 error ");
         goto out;
     }
+    BOOT_LOG_INF("mcu firmware check success");
     /*检查下载区加密后tft区间是否完整被篡改SHA256校验*/
     /*如果时搭配FPGA使用，tft区间存储的为fpga固件*/
     if (calculate_hash_flash_data(storage_partition, fw_info.Tft_Infor.pkg_size,
@@ -508,6 +516,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         BOOT_LOG_ERR("header tft aes sha256 error ");
         goto out;
     }
+    BOOT_LOG_INF("tft firmware check success");
     /*释放固件到mcu app区域*/
     if (aes256_cbc_decrypt_mcu_file(storage_partition, app_partition,
                                     fw_info.Mcu_Infor.pkg_size, sizeof(Rbl_Header_t), aes_key, aes_iv))
@@ -534,12 +543,9 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
     }
 #endif
 #ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
-    fpga_pin_init();
-    /*delay 100ms*/
-    k_msleep(100);
     /*is fpga flash ready*/
     const struct device *flash_dev;
-
+    BOOT_LOG_INF("Start to probe fpga app partition");
     flash_dev = DEVICE_DT_GET(DT_NODELABEL(m25p16_spi));
     if (!device_is_ready(flash_dev))
     {
@@ -576,6 +582,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         goto out;
     }
     /*检查fpga app区间是否完整被篡改SHA256校验*/
+    BOOT_LOG_INF("Start to check fpga app partition sha256");
     if (calculate_hash_flash_data(fpag_partition, fw_info.Tft_Infor.raw_size, 0,
                                   fw_info.Tft_Infor.raw_data_sha256))
     {
@@ -583,8 +590,9 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         BOOT_LOG_ERR("header fpga raw sha256 error ");
         goto out;
     }
+    BOOT_LOG_INF("release image to slot fpga boot flash success ");
 #endif
-    BOOT_LOG_INF("release_image_to_slot success ");
+    BOOT_LOG_INF("release_image_to_slot  success ");
     return rc;
 out:
     BOOT_LOG_ERR("release_image_to_slot error code %d", rc);
