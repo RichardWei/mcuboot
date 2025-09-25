@@ -782,6 +782,7 @@ static void bs_upload(char *buf, int len)
         goto out;
     }
     const size_t fap_slot0_area_size  = flash_area_get_size(fap_slot0);
+    BOOT_LOG_INF("Start to earse storage,area_size 0x%x",fap_slot0_area_size);
     rc = flash_area_erase(fap_slot0, 0, fap_slot0_area_size);
     if (rc) {
         goto out_invalid_data;
