@@ -775,7 +775,10 @@ static void bs_upload(char *buf, int len)
 #endif
 
 #if defined(MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION)
-    /*In This Mode,Earse slot 0 first*/
+
+#ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
+    set_pwm_led_frq_duty(250, 50);
+#endif    /*In This Mode,Earse slot 0 first*/
     rc = flash_area_open(flash_area_id_from_direct_image(0), &fap_slot0);
     if (rc) {
         rc = MGMT_ERR_EINVAL;
@@ -1005,7 +1008,7 @@ out:
         }
         else
         {
-#ifdef __ZEPHYR__
+#ifdef CONFIG_MCUBOOT_INDICATION_LED
     for (size_t i = 0; i < 6; i++)
     {
     io_led_set(0);

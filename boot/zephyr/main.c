@@ -437,6 +437,9 @@ int main(void)
     io_led_init();
 #endif
 
+
+
+
     os_heap_init();
 
     ZEPHYR_BOOT_LOG_START();

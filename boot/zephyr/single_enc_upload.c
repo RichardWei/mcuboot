@@ -41,16 +41,22 @@ static uint8_t str_buffer[112 * 2 + 1];
 #define FPGA_CONFIG_DONE_NODE DT_ALIAS(fpga_config_done)
 #define FPGA_NCONFIG_NODE DT_ALIAS(fpga_nconfig)
 #define FPGA_NCE_NODE DT_ALIAS(fpga_nce)
+#define FPGA_NRESET_NODE DT_ALIAS(fpga_nreset)
 #include <zephyr/drivers/gpio.h>
 static const struct gpio_dt_spec fpga_config_done_pin = GPIO_DT_SPEC_GET(
             FPGA_CONFIG_DONE_NODE, gpios);
 static const struct gpio_dt_spec fpga_nconfig_pin = GPIO_DT_SPEC_GET(
             FPGA_NCONFIG_NODE, gpios);
-static const struct gpio_dt_spec fpga_nce_pin = GPIO_DT_SPEC_GET(FPGA_NCE_NODE,
-        gpios);
-static const struct gpio_dt_spec fpga_nreset_pin = GPIO_DT_SPEC_GET(DT_ALIAS(
-            fpga_nreset),
-        gpios);
+static const struct gpio_dt_spec fpga_nce_pin = GPIO_DT_SPEC_GET(
+            FPGA_NCE_NODE, gpios);
+static const struct gpio_dt_spec fpga_nreset_pin = GPIO_DT_SPEC_GET(
+            FPGA_NRESET_NODE, gpios);
+static const struct gpio_dt_spec lcd_rst_pin = GPIO_DT_SPEC_GET(DT_ALIAS(
+            lcd_reset_done), gpios);
+static const struct gpio_dt_spec lcd_bl_pin = GPIO_DT_SPEC_GET(DT_ALIAS(
+            lcd_backlight), gpios);
+static const struct gpio_dt_spec lcd_default_io_pin = GPIO_DT_SPEC_GET(DT_ALIAS(
+            default_io), gpios);
 
 
 
@@ -58,28 +64,53 @@ static int fpga_pin_init(void)
 {
     if (!device_is_ready(fpga_config_done_pin.port))
     {
-        BOOT_LOG_ERR("Didn't find FPGA_CONFIG_DONE device referred by the FPGA_CONFIG_DONE_NODE\n");
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(FPGA_CONFIG_DONE_NODE));
         return -ENODEV;
     }
     if (!device_is_ready(fpga_nconfig_pin.port))
     {
-        BOOT_LOG_ERR("Didn't find FPGA_NCONFIG device referred by the FPGA_NCONFIG_NODE\n");
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(FPGA_NCONFIG_NODE));
         return -ENODEV;
     }
     if (!device_is_ready(fpga_nce_pin.port))
     {
-        BOOT_LOG_ERR("Didn't find FPGA_NCE device referred by the FPGA_NCE_NODE\n");
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(FPGA_NCE_NODE));
         return -ENODEV;
     }
     if (!device_is_ready(fpga_nreset_pin.port))
     {
-        BOOT_LOG_ERR("Didn't find FPGA_NRESET device referred by the FPGA_NRESET_NODE\n");
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(FPGA_NRESET_NODE));
+        return -ENODEV;
+    }
+    if (!device_is_ready(lcd_rst_pin.port))
+    {
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(DT_ALIAS(lcd_reset_done)));
+        return -ENODEV;
+    }
+    if (!device_is_ready(lcd_bl_pin.port))
+    {
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(DT_ALIAS(lcd_backlight)));
+        return -ENODEV;
+    }
+    if (!device_is_ready(lcd_default_io_pin.port))
+    {
+        BOOT_LOG_ERR("Didn't find device: %s",
+                     DT_NODE_FULL_NAME(DT_ALIAS(default_io)));
         return -ENODEV;
     }
     gpio_pin_configure_dt(&fpga_config_done_pin, GPIO_OUTPUT_ACTIVE);
     gpio_pin_configure_dt(&fpga_nconfig_pin, GPIO_OUTPUT_ACTIVE);
     gpio_pin_configure_dt(&fpga_nce_pin, GPIO_OUTPUT_ACTIVE);
     gpio_pin_configure_dt(&fpga_nreset_pin, GPIO_OUTPUT_ACTIVE);
+    gpio_pin_configure_dt(&lcd_rst_pin, GPIO_OUTPUT_ACTIVE);
+    gpio_pin_configure_dt(&lcd_bl_pin, GPIO_OUTPUT_ACTIVE);
+    gpio_pin_configure_dt(&lcd_default_io_pin, GPIO_OUTPUT_ACTIVE);
     return 0;
 }
 /*make sure the fpga pin init before use fpga flash*/
@@ -87,7 +118,44 @@ SYS_INIT(fpga_pin_init, POST_KERNEL, 0);
 
 #endif
 
+#ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
 
+#include <zephyr/drivers/gpio.h>
+#include <zephyr/drivers/pwm.h>
+static const struct pwm_dt_spec on_off_pwm_led0 = PWM_DT_SPEC_GET(DT_ALIAS(
+            pwm_led0));
+
+
+
+void set_pwm_led_frq_duty(uint16_t period_ms, uint16_t duty)
+{
+    if (!pwm_is_ready_dt(&on_off_pwm_led0))
+        return;
+    if (duty > 100)
+    {
+        duty = 100;
+    }
+     uint64_t period_ns = (uint64_t)period_ms * 1000000ULL;
+    uint64_t duty_ns = period_ns * duty / 100;
+    pwm_set_dt(&on_off_pwm_led0, period_ns, duty_ns);
+}
+
+static int pwm_pin_init(void)
+{
+    if (!pwm_is_ready_dt(&on_off_pwm_led0))
+        return -ENODEV;
+    
+    /*1k hz*/
+    //led_pwm_set_dt(on_off_pwm_led0, USEC_PER_SEC / 1000, (USEC_PER_SEC / 1000) / 4);
+    set_pwm_led_frq_duty(1000,50);
+    return 0;
+}
+SYS_INIT(pwm_pin_init, APPLICATION, 2);
+
+
+
+
+#endif
 
 
 
@@ -470,7 +538,9 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         rc = -1;
         goto out;
     }
+#ifdef CONFIG_MCUBOOT_INDICATION_LED
     io_led_set(0);
+#endif
     /*open storage_slot partition*/
     rc = flash_area_open(flash_area_id_from_direct_image(storage_slot),
                          &storage_partition);
@@ -553,8 +623,6 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         BOOT_LOG_ERR("m25p16_spi device not ready error code %d", rc);
         goto out;
     }
-
-
     rc = flash_area_open(flash_area_id_from_direct_image(3), &fpag_partition);
     if (rc)
     {
@@ -592,9 +660,16 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
     }
     BOOT_LOG_INF("release image to slot fpga boot flash success ");
 #endif
+
+#ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
+    set_pwm_led_frq_duty(3000, 75);
+#endif
     BOOT_LOG_INF("release_image_to_slot  success ");
     return rc;
 out:
+#ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
+    set_pwm_led_frq_duty(100, 50);
+#endif
     BOOT_LOG_ERR("release_image_to_slot error code %d", rc);
     return rc;
 }

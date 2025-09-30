@@ -47,7 +47,12 @@ int release_image_to_slot(uint8_t application_slot,uint8_t storage_slot,uint32_t
 
 
 
+#ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
 
+
+void set_pwm_led_frq_duty(uint16_t  frq, uint16_t duty);
+
+#endif
 
 
 
