@@ -83,7 +83,7 @@
 #ifdef MCUBOOT_SINGLE_APPLICATION_SLOT_USE_EXTERN_PARTITION
 #include "single_enc_upload/single_enc_upload.h"
 #endif
-
+#include <app_version.h>
 
 BOOT_LOG_MODULE_DECLARE(mcuboot);
 
@@ -259,8 +259,12 @@ bs_list(char *buf, int len)
 #ifdef MCUBOOT_SERIAL_IMG_GRP_HASH
     uint8_t hash[32];
 #endif
+#define FW_BUILD_INFO \
+    APP_VERSION_STRING "-" STRINGIFY(APP_BUILD_VERSION) "-" __DATE__ "-" __TIME__
 
-    zcbor_map_start_encode(cbor_state, 1);
+    zcbor_map_start_encode(cbor_state, 2);
+    zcbor_tstr_put_lit_cast(cbor_state, "boot_version");
+    zcbor_tstr_put_lit_cast(cbor_state, FW_BUILD_INFO);
     zcbor_tstr_put_lit_cast(cbor_state, "images");
     zcbor_list_start_encode(cbor_state, 5);
     image_index = 0;
@@ -418,7 +422,7 @@ bs_list(char *buf, int len)
         }
     }
     zcbor_list_end_encode(cbor_state, 5);
-    zcbor_map_end_encode(cbor_state, 1);
+    zcbor_map_end_encode(cbor_state, 2);
     boot_serial_output();
 }
 
