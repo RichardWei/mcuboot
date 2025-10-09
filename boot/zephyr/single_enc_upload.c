@@ -642,8 +642,8 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
     BOOT_LOG_INF("release_image_to_slot fpag_partition %d size %d", 3,
                  flash_area_get_size(fpag_partition));
     /*释放固件到fpga app区域*/
-    if (aes256_cbc_decrypt_mcu_file(fpag_partition, app_partition,
-                                    fw_info.Tft_Infor.pkg_size, sizeof(Rbl_Header_t), aes_key, aes_iv))
+    if (aes256_cbc_decrypt_mcu_file(storage_partition, fpag_partition,
+                                    fw_info.Tft_Infor.pkg_size, sizeof(Rbl_Header_t) + fw_info.Mcu_Infor.pkg_size, aes_key, aes_iv))
     {
         rc = -13;
         BOOT_LOG_ERR("aes256_cbc_decrypt_fpga_file error ");
