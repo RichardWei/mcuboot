@@ -527,6 +527,7 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
     const struct flash_area *app_partition = NULL;
 #ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
     const struct flash_area *fpag_partition = NULL;
+    const struct flash_area *lvgl_fsbin_partition = NULL;
 #endif
     alc_func_init();
     BOOT_LOG_INF("release_image_to_slot app_slot %d ,enc_image_slot %d size %d",
@@ -659,6 +660,58 @@ int release_image_to_slot(uint8_t app_slot, uint8_t storage_slot,
         goto out;
     }
     BOOT_LOG_INF("release image to slot fpga boot flash success ");
+
+   
+    /*检查字体文件完整性 */
+    rc = flash_area_open(flash_area_id_from_direct_image(4), &lvgl_fsbin_partition);
+    if (rc)
+    {
+        rc = -15;
+        BOOT_LOG_ERR("lvgl fs open error");
+        goto out;
+    }
+    BOOT_LOG_INF("open lvgl_fsbin_partition success");
+    /*earse fpga app partition*/
+    rc = flash_area_erase(lvgl_fsbin_partition, 0, flash_area_get_size(lvgl_fsbin_partition));
+    if (rc)
+    {
+        rc = -16;
+        BOOT_LOG_ERR("lvgl fs earse error");
+        goto out;
+    } 
+    BOOT_LOG_INF("earse lvgl_fsbin_partition success");
+    /*检查下载区加密后tft区间是否完整被篡改SHA256校验*/
+    if (calculate_hash_flash_data(storage_partition, fw_info.lvglsource_infor.pkg_size,
+                                  sizeof(Rbl_Header_t) + fw_info.Mcu_Infor.pkg_size + fw_info.Tft_Infor.pkg_size,
+                                  fw_info.lvglsource_infor.aes_data_sha256))
+    {
+        rc = -17;
+        BOOT_LOG_ERR("lvgl fs aes sha256 error ");
+        goto out;
+    }
+    BOOT_LOG_INF("check lvgl fs aes sha256 success");
+
+    /*释放固件到lvgl  fs区域*/
+    if (aes256_cbc_decrypt_mcu_file(storage_partition, lvgl_fsbin_partition,
+                                    fw_info.lvglsource_infor.pkg_size, 
+                                    sizeof(Rbl_Header_t) + fw_info.Mcu_Infor.pkg_size+ fw_info.Tft_Infor.pkg_size, 
+                                    aes_key, aes_iv))
+    {
+        rc = -18;
+        BOOT_LOG_ERR("release lvgl fs aes error ");
+        goto out;
+    }
+    BOOT_LOG_INF("release lvgl fs aes sha256 success");
+    if (calculate_hash_flash_data(lvgl_fsbin_partition, fw_info.lvglsource_infor.raw_size,
+                                  0,fw_info.lvglsource_infor.raw_data_sha256))
+    {
+        rc = -19;
+        BOOT_LOG_ERR("lvgl fs aes sha256 error ");
+        goto out;
+    }
+    BOOT_LOG_INF("lvgl fs write success");
+
+
 #endif
 
 #ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16

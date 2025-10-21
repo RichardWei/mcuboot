@@ -31,8 +31,10 @@ typedef struct Rbl_Header
 
     Size_And_Crc_Struct Mcu_Infor;
     Size_And_Crc_Struct Tft_Infor;
+#ifdef CONFIG_MCUBOOT_USE_FPGA_WITH_ALC16
+    Size_And_Crc_Struct lvglsource_infor;///< LVGL source firmware size and CRC information
 
-
+#endif
     uint8_t rand_a[32]; // A区随机数
     uint16_t key_index; // 秘钥索引
     uint16_t iv_index;  // 初始向量索引
